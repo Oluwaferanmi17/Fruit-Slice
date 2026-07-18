@@ -6,27 +6,10 @@ import random
 # print(mp)
 # print(mp.__file__)
 score = 0
-fruit_x = 300
-fruit_y = 300
 radius = 30
-fruit_vx = 5
-fruit_vy = -18
 prev_x = None
 prev_y = None
 gravity = 0.7
-split = False
-
-left_x = 0
-left_y = 0
-right_x = 0
-right_y = 0
-
-left_vx = 0
-left_vy = 0
-
-right_vx = 0
-right_vy = 0
-
 
 apple = cv2.imread("pic/apple.png", cv2.IMREAD_UNCHANGED)
 mango = cv2.imread("pic/mango.png", cv2.IMREAD_UNCHANGED)
@@ -42,7 +25,18 @@ pineapple = cv2.resize(pineapple, (60, 60))
 banana = cv2.resize(banana, (60, 60))
 
 fruits = [apple, mango, pineapple, banana]
-fruit_img = random.choice(fruits)
+fruit_list = []
+
+for i in range(3):
+    fruit = {
+        "x": random.randint(100, 500),
+        "y": random.randint(300, 500),
+        "vx": random.choice([-5, -4, -3, 3, 4, 5]),
+        "vy": random.randint(-22, -18),
+        "img": random.choice(fruits),
+    }
+
+    fruit_list.append(fruit)
 
 
 mp_hands = mp.solutions.hands
@@ -96,62 +90,40 @@ while True:
             prev_y = cy
             cv2.circle(img, (cx, cy), 12, (0, 255, 255), -1)
 
-            fruit_x += fruit_vx
-            fruit_y += fruit_vy
-            fruit_vy += gravity
+            for fruit in fruit_list:
 
-            if not split:
-                overlay_png(img, fruit_img, int(fruit_x - 30), int(fruit_y - 30))
+                # Move
+                fruit["x"] += fruit["vx"]
+                fruit["y"] += fruit["vy"]
+                fruit["vy"] += gravity
 
-            if split:
+                # Draw
+                overlay_png(
+                    img,
+                    fruit["img"],
+                    int(fruit["x"] - 30),
+                    int(fruit["y"] - 30),
+                )
 
-                left_x += left_vx
-                left_y += left_vy
-                left_vy += gravity
+                # Respawn
+                if fruit["y"] > img.shape[0] + 50:
+                    fruit["x"] = random.randint(100, img.shape[1] - 100)
+                    fruit["y"] = img.shape[0] + 50
+                    fruit["vx"] = random.choice([-5, -4, -3, 3, 4, 5])
+                    fruit["vy"] = random.randint(-22, -18)
+                    fruit["img"] = random.choice(fruits)
 
-                right_x += right_vx
-                right_y += right_vy
-                right_vy += gravity
+                # Collision
+                distance = math.sqrt((cx - fruit["x"]) ** 2 + (cy - fruit["y"]) ** 2)
 
-                overlay_png(img, fruit_img, int(left_x - 30), int(left_y - 30))
-                overlay_png(img, fruit_img, int(right_x - 30), int(right_y - 30))
-                if left_y > img.shape[0] + 50:
-                    split = False
-                    fruit_x = random.randint(100, img.shape[1] - 100)
-                    fruit_y = img.shape[0] + 50
-                    fruit_vx = random.choice([-5, -4, -3, -2, 2, 3, 4, 5])
-                    fruit_vy = random.randint(-22, -18)
-                    fruit_img = random.choice(fruits)
+                if distance < radius:
+                    score += 1
 
-            overlay_png(img, fruit_img, int(fruit_x - 30), int(fruit_y - 30))
-            if fruit_y > img.shape[0] + 50:
-                fruit_x = random.randint(100, img.shape[1] - 100)
-                fruit_y = img.shape[0] + 50
-                fruit_vx = random.randint(-5, 5)
-                fruit_vy = random.randint(-22, -18)
-                fruit_img = random.choice(fruits)
-                h, w = fruit_img.shape[:2]
-
-                left_half = fruit_img[:, : w // 2]
-                right_half = fruit_img[:, w // 2 :]
-
-            distance = math.sqrt((cx - fruit_x) ** 2 + (cy - fruit_y) ** 2)
-            if distance < radius:
-                score += 1
-
-                split = True
-
-                left_x = fruit_x
-                left_y = fruit_y
-
-                right_x = fruit_x
-                right_y = fruit_y
-
-                left_vx = -6
-                right_vx = 6
-
-                left_vy = fruit_vy
-                right_vy = fruit_vy
+                    fruit["x"] = random.randint(100, img.shape[1] - 100)
+                    fruit["y"] = img.shape[0] + 50
+                    fruit["vx"] = random.choice([-5, -4, -3, 3, 4, 5])
+                    fruit["vy"] = random.randint(-22, -18)
+                    fruit["img"] = random.choice(fruits)
 
     cv2.putText(
         img,
